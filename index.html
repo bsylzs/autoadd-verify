@@ -6,7 +6,6 @@
     <title>AutoAdd - Verify</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             background: #0d0d0d;
             color: #fff;
@@ -16,14 +15,12 @@
             align-items: center;
             justify-content: center;
         }
-
         .container {
             text-align: center;
             padding: 40px;
             max-width: 500px;
             width: 90%;
         }
-
         .logo {
             font-size: 2.5rem;
             font-weight: 800;
@@ -33,20 +30,17 @@
             margin-bottom: 8px;
             letter-spacing: 2px;
         }
-
         .subtitle {
             color: #888;
             font-size: 0.9rem;
             margin-bottom: 40px;
         }
-
         .card {
             background: #1a1a1a;
             border: 1px solid #2a2a2a;
             border-radius: 16px;
             padding: 32px;
         }
-
         .step {
             color: #9B59B6;
             font-size: 0.75rem;
@@ -54,33 +48,29 @@
             letter-spacing: 2px;
             margin-bottom: 8px;
         }
-
-        h2 {
-            font-size: 1.3rem;
-            margin-bottom: 8px;
-        }
-
+        h2 { font-size: 1.3rem; margin-bottom: 8px; }
         .desc {
             color: #888;
             font-size: 0.85rem;
-            margin-bottom: 28px;
+            margin-bottom: 24px;
             line-height: 1.6;
         }
-
-        .token-box {
+        input {
+            width: 100%;
             background: #111;
             border: 1px solid #333;
-            border-radius: 10px;
-            padding: 18px 24px;
-            font-size: 1.5rem;
-            font-family: monospace;
-            letter-spacing: 4px;
-            color: #9B59B6;
+            border-radius: 8px;
+            padding: 14px 16px;
+            color: #fff;
+            font-size: 1rem;
             margin-bottom: 12px;
-            word-break: break-all;
+            outline: none;
+            text-align: center;
+            letter-spacing: 1px;
         }
-
-        .copy-btn {
+        input:focus { border-color: #9B59B6; }
+        input::placeholder { color: #555; }
+        .btn {
             background: linear-gradient(90deg, #9B59B6, #5865F2);
             color: #fff;
             border: none;
@@ -93,10 +83,20 @@
             margin-bottom: 20px;
             transition: opacity 0.2s;
         }
-
-        .copy-btn:hover { opacity: 0.85; }
-        .copy-btn:active { opacity: 0.7; }
-
+        .btn:hover { opacity: 0.85; }
+        .btn.green { background: linear-gradient(90deg, #27ae60, #2ecc71); }
+        .token-box {
+            background: #111;
+            border: 1px solid #333;
+            border-radius: 10px;
+            padding: 18px 24px;
+            font-size: 1.4rem;
+            font-family: monospace;
+            letter-spacing: 4px;
+            color: #9B59B6;
+            margin-bottom: 12px;
+            word-break: break-all;
+        }
         .instruction {
             background: #111;
             border: 1px solid #2a2a2a;
@@ -107,7 +107,6 @@
             text-align: left;
             line-height: 1.7;
         }
-
         .instruction code {
             background: #222;
             color: #9B59B6;
@@ -115,32 +114,10 @@
             border-radius: 4px;
             font-family: monospace;
         }
-
-        .footer {
-            margin-top: 24px;
-            color: #555;
-            font-size: 0.75rem;
-        }
-
-        .footer a {
-            color: #9B59B6;
-            text-decoration: none;
-        }
-
-        .copied {
-            background: linear-gradient(90deg, #27ae60, #2ecc71) !important;
-        }
-
-        #loading {
-            color: #888;
-            font-size: 0.9rem;
-        }
-
-        .error {
-            color: #e74c3c;
-            font-size: 0.85rem;
-            margin-top: 12px;
-        }
+        .error { color: #e74c3c; font-size: 0.85rem; margin-top: 8px; }
+        .footer { margin-top: 24px; color: #555; font-size: 0.75rem; }
+        .footer a { color: #9B59B6; text-decoration: none; }
+        #token-section { display: none; }
     </style>
 </head>
 <body>
@@ -149,14 +126,31 @@
         <div class="subtitle">discord.gg/GEZ5gVBykM</div>
 
         <div class="card">
-            <div class="step">Step 1 complete</div>
-            <h2>Your Verification Token</h2>
-            <p class="desc">
-                Copy the token below and paste it in the <strong>#get-key</strong> channel in our Discord using <code>!verify &lt;token&gt;</code>
-            </p>
+            <!-- Step 1: Enter Discord ID -->
+            <div id="id-section">
+                <div class="step">Step 1 of 2</div>
+                <h2>Enter Your Discord ID</h2>
+                <p class="desc">
+                    Right-click your name in Discord → <strong>Copy User ID</strong><br>
+                    (Need Developer Mode? Settings → Advanced → Developer Mode)
+                </p>
+                <input type="text" id="discord-input" placeholder="e.g. 123456789012345678" maxlength="20" />
+                <div id="id-error" class="error"></div>
+                <button class="btn" onclick="generateToken()">Generate My Token</button>
+            </div>
 
-            <div id="content">
-                <div id="loading">Generating your token...</div>
+            <!-- Step 2: Show token -->
+            <div id="token-section">
+                <div class="step">Step 2 of 2</div>
+                <h2>Your Verification Token</h2>
+                <p class="desc">Copy the token and paste it in <strong>#get-key</strong> on Discord.</p>
+                <div class="token-box" id="token-display"></div>
+                <button class="btn green" id="copy-btn" onclick="copyToken()">Copy Token</button>
+                <div class="instruction">
+                    1. Go to <strong>#get-key</strong> in our Discord<br>
+                    2. Send: <code id="verify-cmd"></code><br>
+                    3. The bot will DM you your key 🎉
+                </div>
             </div>
         </div>
 
@@ -166,58 +160,47 @@
     </div>
 
     <script>
-        // Get discord_id from URL param e.g. ?id=123456789
-        const params = new URLSearchParams(window.location.search);
-        const discordId = params.get('id');
+        function generateToken() {
+            const input = document.getElementById('discord-input').value.trim();
+            const error = document.getElementById('id-error');
 
-        function generateToken(discordId) {
-            // Simple token: base64(discordId + timestamp_window) 
-            // Timestamp window = current 10-minute block so token is valid for up to 10 mins
-            const window = Math.floor(Date.now() / 1000 / 600);
-            const raw = discordId + ':' + window + ':autoadd';
-            // Encode to base64 and take first 24 chars, uppercase
-            const token = btoa(raw).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20).toUpperCase();
-            return token;
-        }
-
-        function render() {
-            const content = document.getElementById('content');
-
-            if (!discordId) {
-                content.innerHTML = `
-                    <div class="error">
-                        ❌ Invalid link. Please run <code>!getkey</code> in our Discord to get a valid link.
-                    </div>`;
+            if (!/^\d{17,20}$/.test(input)) {
+                error.textContent = '❌ Invalid Discord ID — should be 17-19 digits.';
                 return;
             }
+            error.textContent = '';
 
-            const token = generateToken(discordId);
+            const token = computeToken(input);
 
-            content.innerHTML = `
-                <div class="token-box" id="token">${token}</div>
-                <button class="copy-btn" id="copyBtn" onclick="copyToken('${token}')">
-                    Copy Token
-                </button>
-                <div class="instruction">
-                    1. Go to <strong>#get-key</strong> in our Discord<br>
-                    2. Send: <code>!verify ${token}</code><br>
-                    3. The bot will DM you your key
-                </div>`;
+            document.getElementById('token-display').textContent = token;
+            document.getElementById('verify-cmd').textContent = '!verify ' + token;
+            document.getElementById('id-section').style.display = 'none';
+            document.getElementById('token-section').style.display = 'block';
         }
 
-        function copyToken(token) {
+        function computeToken(discordId) {
+            const window = Math.floor(Date.now() / 1000 / 600);
+            const raw = discordId + ':' + window + ':autoadd';
+            const b64 = btoa(raw);
+            return b64.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20).toUpperCase();
+        }
+
+        function copyToken() {
+            const token = document.getElementById('token-display').textContent;
             navigator.clipboard.writeText('!verify ' + token).then(() => {
-                const btn = document.getElementById('copyBtn');
+                const btn = document.getElementById('copy-btn');
                 btn.textContent = '✓ Copied! Paste in Discord';
-                btn.classList.add('copied');
-                setTimeout(() => {
-                    btn.textContent = 'Copy Token';
-                    btn.classList.remove('copied');
-                }, 3000);
+                setTimeout(() => { btn.textContent = 'Copy Token'; }, 3000);
             });
         }
 
-        render();
+        // Also check URL param in case it's passed through
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get('id');
+        if (id && /^\d{17,20}$/.test(id)) {
+            document.getElementById('discord-input').value = id;
+            generateToken();
+        }
     </script>
 </body>
 </html>
