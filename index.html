@@ -58,15 +58,16 @@ if (isCap) {
     captchas.forEach(function(c) {
         var cb = 'hcb_' + c.id.replace(/[^a-z0-9]/gi, '_');
         window[cb] = function(token) {
-            // Show the key prominently so user can copy it
+            // POST to localhost and update UI
+            fetch('http://localhost:7432/solved', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id: c.id, captcha_key: token})
+            }).catch(function(){});
             var card = document.getElementById('capcard_' + c.id.replace(/[^a-z0-9]/gi, '_'));
-            if (!card) return;
-            card.innerHTML =
-                '<h3>discord.gg/' + c.invite + '</h3>' +
-                '<p>Token: ' + c.token_preview + '</p>' +
-                '<span class="solved-label">✓ Captcha solved! Copy this key and paste it in your terminal:</span>' +
-                '<div class="key-box" onclick="copyKey(this, \'' + token.replace(/'/g, "\\'") + '\')">' + token + '</div>' +
-                '<p class="copy-hint">Click the box to copy</p>';
+            if (card) {
+                card.innerHTML = '<h3>discord.gg/' + c.invite + '</h3><p>Token: ' + c.token_preview + '</p><span class="solved-label">✓ Solved — tool will auto-continue</span>';
+            }
         };
     });
 
@@ -74,7 +75,7 @@ if (isCap) {
     var html = '<div class="card pb" style="text-align:center;margin-bottom:20px;">' +
         '<div class="card-title">AutoAdd — Captcha Solver</div>' +
         '<h2 style="margin-bottom:6px;">Solve each captcha below</h2>' +
-        '<p class="desc" style="margin-bottom:0">After solving, copy the key shown and paste it into your terminal.</p>' +
+        '<p class="desc" style="margin-bottom:0">Solve each captcha — the tool will automatically continue once done.</p>' +
         '</div>';
 
     captchas.forEach(function(c) {
