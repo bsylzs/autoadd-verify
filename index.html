@@ -96,9 +96,25 @@ if (isCap) {
 
     document.getElementById('mainContent').innerHTML = html;
 
-    // Load hCaptcha after DOM is ready
+    // Load hCaptcha with explicit render and host=discord.com
+    window.onHcaptchaLoad = function() {
+        captchas.forEach(function(c) {
+            var cb     = 'hcb_' + c.id.replace(/[^a-z0-9]/gi, '_');
+            var cardId = 'capcard_' + c.id.replace(/[^a-z0-9]/gi, '_');
+            var container = document.querySelector('#' + cardId + ' .h-captcha');
+            if (!container) return;
+            var params = {
+                sitekey:  c.sitekey,
+                callback: cb,
+                theme:    'dark',
+                host:     'discord.com',
+            };
+            if (c.rqdata) params.rqdata = c.rqdata;
+            hcaptcha.render(container, params);
+        });
+    };
     var s = document.createElement('script');
-    s.src = 'https://js.hcaptcha.com/1/api.js?host=discord.com';
+    s.src = 'https://js.hcaptcha.com/1/api.js?onload=onHcaptchaLoad&render=explicit';
     s.async = true;
     document.head.appendChild(s);
 
