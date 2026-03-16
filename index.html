@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AutoAdd</title>
-    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
     <style>
         * { margin:0; padding:0; box-sizing:border-box; }
         body { background:#0d0d0d; color:#fff; font-family:'Segoe UI',sans-serif; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; }
@@ -33,15 +32,14 @@
         .cap-card h3 { font-size:0.9rem; color:#9b59b6; margin-bottom:4px; }
         .cap-card p { font-size:0.78rem; color:#666; margin-bottom:14px; }
         .solved-tag { color:#2ecc71; font-weight:700; font-size:0.85rem; }
-        .pending-tag { color:#f39c12; font-size:0.82rem; margin-top:8px; display:block; }
         .start-bar { position:fixed; bottom:0; left:0; right:0; background:#0d0d0d; border-top:1px solid #222; padding:14px 24px; display:flex; align-items:center; justify-content:space-between; gap:12px; }
         .start-bar span { color:#666; font-size:0.85rem; }
         .start-bar .btn { width:auto; padding:10px 28px; }
-        .pb { padding-bottom:80px; }
+        .pb { padding-bottom:90px; }
     </style>
 </head>
 <body>
-<div class="container" id="root">
+<div class="container">
     <div class="logo">AutoAdd</div>
     <div class="subtitle">discord.gg/GEZ5gVBykM</div>
     <div id="mainContent"></div>
@@ -53,144 +51,140 @@
 </div>
 
 <script>
-const params   = new URLSearchParams(window.location.search);
-const capData  = params.get('data');
-const idParam  = params.get('id');
-const isCap    = params.get('captcha') === '1' && capData;
+const params  = new URLSearchParams(window.location.search);
+const capData = params.get('data');
+const idParam = params.get('id');
+const isCap   = params.get('captcha') === '1' && capData;
 
-// ── Captcha mode ─────────────────────────────────────────────────────────────
+// ── Captcha solver ────────────────────────────────────────────────────────────
 if (isCap) {
     let captchas = [];
     let solved   = {};
 
-    try { captchas = JSON.parse(decodeURIComponent(capData)); } catch(e) {}
+    try { captchas = JSON.parse(decodeURIComponent(capData)); } catch(e) { console.error('Parse error', e); }
 
     document.getElementById('startBar').style.display = 'flex';
 
-    function render() {
-        const mc = document.getElementById('mainContent');
-        mc.className = 'pb';
-        mc.innerHTML = `
-            <div class="card" style="text-align:center;margin-bottom:20px;">
-                <div class="card-title">AutoAdd — Captcha Solver</div>
-                <h2 style="margin-bottom:6px;">Solve the captchas below</h2>
-                <p class="desc" style="margin-bottom:0">Each captcha unlocks a server join. Solve one or more then click Start.</p>
-            </div>
-            <div class="captcha-grid">
-                ${captchas.map((c,i) => {
-                    if (solved[c.id]) return `
-                        <div class="cap-card">
-                            <h3>discord.gg/${c.invite}</h3>
-                            <p>Token: ${c.token_preview}</p>
-                            <span class="solved-tag">✓ Solved</span>
-                        </div>`;
-                    const cb = 'hcb_' + c.id.replace(/[^a-z0-9]/gi,'_');
-                    return `
-                        <div class="cap-card">
-                            <h3>discord.gg/${c.invite}</h3>
-                            <p>Token: ${c.token_preview}</p>
-                            <div class="h-captcha"
-                                data-sitekey="${c.sitekey}"
-                                ${c.rqdata ? `data-rqdata="${c.rqdata}"` : ''}
-                                data-callback="${cb}"
-                                data-theme="dark">
-                            </div>
-                            <span class="pending-tag">Waiting for solve...</span>
-                        </div>`;
-                }).join('')}
-            </div>`;
+    // Register global callbacks BEFORE rendering so hCaptcha can find them
+    captchas.forEach(c => {
+        const cb = 'hcb_' + c.id.replace(/[^a-z0-9]/gi, '_');
+        window[cb] = function(token) {
+            solved[c.id] = token;
+            // Send back to localhost via image trick (allowed from HTTPS)
+            const img = new Image();
+            img.src = 'http://localhost:7432/solved?d=' + encodeURIComponent(JSON.stringify({id: c.id, captcha_key: token}));
+            document.getElementById('card_' + c.id.replace(/[^a-z0-9]/gi,'_')).innerHTML =
+                '<h3>discord.gg/' + c.invite + '</h3><p>Token: ' + c.token_preview + '</p><span class="solved-tag">✓ Solved</span>';
+            updateBtn();
+        };
+    });
 
-        captchas.forEach(c => {
-            if (solved[c.id]) return;
-            const cb = 'hcb_' + c.id.replace(/[^a-z0-9]/gi,'_');
-            window[cb] = (token) => {
-                solved[c.id] = token;
-                // Send solution back to localhost via image src trick (bypasses mixed content)
-                const img = new Image();
-                const payload = encodeURIComponent(JSON.stringify({id: c.id, captcha_key: token}));
-                img.src = `http://localhost:7432/solved?d=${payload}`;
-                updateBtn();
-                render();
-            };
-        });
+    // Build HTML — hCaptcha will auto-render divs with class h-captcha on script load
+    const mc = document.getElementById('mainContent');
+    mc.className = 'pb';
+    mc.innerHTML =
+        '<div class="card" style="text-align:center;margin-bottom:20px;">' +
+            '<div class="card-title">AutoAdd — Captcha Solver</div>' +
+            '<h2 style="margin-bottom:6px;">Solve the captchas below</h2>' +
+            '<p class="desc" style="margin-bottom:0">Each captcha unlocks a server join. Solve one or more then click Start.</p>' +
+        '</div>' +
+        '<div class="captcha-grid">' +
+        captchas.map(function(c) {
+            const cbName  = 'hcb_' + c.id.replace(/[^a-z0-9]/gi, '_');
+            const cardId  = 'card_' + c.id.replace(/[^a-z0-9]/gi, '_');
+            const rqAttr  = c.rqdata ? ' data-rqdata="' + c.rqdata + '"' : '';
+            return '<div class="cap-card" id="' + cardId + '">' +
+                '<h3>discord.gg/' + c.invite + '</h3>' +
+                '<p>Token: ' + c.token_preview + '</p>' +
+                '<div class="h-captcha"' +
+                    ' data-sitekey="' + c.sitekey + '"' +
+                    rqAttr +
+                    ' data-callback="' + cbName + '"' +
+                    ' data-theme="dark">' +
+                '</div>' +
+            '</div>';
+        }).join('') +
+        '</div>';
 
-        if (typeof hcaptcha !== 'undefined') {
-            setTimeout(() => { try { hcaptcha.render(); } catch(e){} }, 100);
-        }
-        updateBtn();
-    }
+    // Load hCaptcha AFTER the divs are in the DOM so it auto-renders them
+    var script = document.createElement('script');
+    script.src = 'https://js.hcaptcha.com/1/api.js';
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
 
     function updateBtn() {
-        const n   = Object.keys(solved).length;
-        const btn = document.getElementById('startBtn');
-        document.getElementById('solvedCount').textContent = `${n} of ${captchas.length} solved`;
-        btn.disabled    = n === 0;
-        btn.textContent = n > 0 ? `Start Now (${n} ready)` : 'Start Now';
+        const n = Object.keys(solved).length;
+        document.getElementById('solvedCount').textContent = n + ' of ' + captchas.length + ' solved';
+        document.getElementById('startBtn').disabled = n === 0;
+        document.getElementById('startBtn').textContent = n > 0 ? 'Start Now (' + n + ' ready)' : 'Start Now';
     }
 
     function startNow() {
-        const img = new Image();
+        var img = new Image();
         img.src = 'http://localhost:7432/start';
         document.getElementById('startBtn').disabled = true;
         document.getElementById('startBtn').textContent = 'Starting...';
         document.getElementById('solvedCount').textContent = 'Joins in progress...';
     }
 
-    render();
+    updateBtn();
 
-// ── Key verification mode ─────────────────────────────────────────────────────
+// ── Key verification ──────────────────────────────────────────────────────────
 } else {
-    document.getElementById('mainContent').innerHTML = `
-        <div class="card" id="step1">
-            <div class="card-title">Step 1 of 2</div>
-            <h2>Enter Your Discord ID</h2>
-            <p class="desc">Right-click your name → <strong>Copy User ID</strong><br>Need Developer Mode? Settings → Advanced → Developer Mode</p>
-            <input type="text" id="discordInput" placeholder="e.g. 123456789012345678" maxlength="20" />
-            <div id="idError" class="err"></div>
-            <button class="btn" onclick="generateToken()">Generate My Token</button>
-        </div>
-        <div class="card" id="step2" style="display:none">
-            <div class="card-title">Step 2 of 2</div>
-            <h2>Your Verification Token</h2>
-            <p class="desc">Copy and paste this in <strong>#get-key</strong> on Discord.</p>
-            <div class="token-box" id="tokenDisplay"></div>
-            <button class="btn green" id="copyBtn" onclick="copyToken()">Copy Token</button>
-            <br><br>
-            <div class="instruction">
-                1. Go to <strong>#get-key</strong> in our Discord<br>
-                2. Send: <code id="verifyCmd"></code><br>
-                3. Bot will DM your key 🎉
-            </div>
-        </div>`;
+    document.getElementById('mainContent').innerHTML =
+        '<div class="card" id="step1">' +
+            '<div class="card-title">Step 1 of 2</div>' +
+            '<h2>Enter Your Discord ID</h2>' +
+            '<p class="desc">Right-click your name → <strong>Copy User ID</strong><br>Need Developer Mode? Settings → Advanced → Developer Mode</p>' +
+            '<input type="text" id="discordInput" placeholder="e.g. 123456789012345678" maxlength="20" />' +
+            '<div id="idError" class="err"></div>' +
+            '<button class="btn" onclick="generateToken()">Generate My Token</button>' +
+        '</div>' +
+        '<div class="card" id="step2" style="display:none">' +
+            '<div class="card-title">Step 2 of 2</div>' +
+            '<h2>Your Verification Token</h2>' +
+            '<p class="desc">Copy and paste this in <strong>#get-key</strong> on Discord.</p>' +
+            '<div class="token-box" id="tokenDisplay"></div>' +
+            '<button class="btn green" id="copyBtn" onclick="copyToken()">Copy Token</button>' +
+            '<br><br>' +
+            '<div class="instruction">' +
+                '1. Go to <strong>#get-key</strong> in our Discord<br>' +
+                '2. Send: <code id="verifyCmd"></code><br>' +
+                '3. Bot will DM your key 🎉' +
+            '</div>' +
+        '</div>';
 
     if (idParam && /^\d{17,20}$/.test(idParam)) {
         document.getElementById('discordInput').value = idParam;
         generateToken();
     }
+
+    // Load hCaptcha is NOT needed on key page
 }
 
 function generateToken() {
-    const input = document.getElementById('discordInput').value.trim();
-    const err   = document.getElementById('idError');
+    var input = document.getElementById('discordInput').value.trim();
+    var err   = document.getElementById('idError');
     if (!/^\d{17,20}$/.test(input)) { err.textContent = '❌ Invalid Discord ID.'; return; }
     err.textContent = '';
-    const token = computeToken(input);
+    var token = computeToken(input);
     document.getElementById('tokenDisplay').textContent = token;
     document.getElementById('verifyCmd').textContent = '!verify ' + token;
     document.getElementById('step2').style.display = 'block';
 }
 
 function computeToken(id) {
-    const win = Math.floor(Date.now() / 1000 / 600);
+    var win = Math.floor(Date.now() / 1000 / 600);
     return btoa(id + ':' + win + ':autoadd').replace(/[^a-zA-Z0-9]/g,'').substring(0,20).toUpperCase();
 }
 
 function copyToken() {
-    const t = document.getElementById('tokenDisplay').textContent;
-    navigator.clipboard.writeText('!verify ' + t).then(() => {
-        const btn = document.getElementById('copyBtn');
+    var t = document.getElementById('tokenDisplay').textContent;
+    navigator.clipboard.writeText('!verify ' + t).then(function() {
+        var btn = document.getElementById('copyBtn');
         btn.textContent = '✓ Copied!';
-        setTimeout(() => btn.textContent = 'Copy Token', 3000);
+        setTimeout(function(){ btn.textContent = 'Copy Token'; }, 3000);
     });
 }
 </script>
