@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoAdd - Verify</title>
+    <title>AutoAdd</title>
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -14,193 +15,329 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 24px;
         }
-        .container {
-            text-align: center;
-            padding: 40px;
-            max-width: 500px;
-            width: 90%;
-        }
+        .container { text-align: center; max-width: 560px; width: 100%; }
         .logo {
-            font-size: 2.5rem;
+            font-size: 2.4rem;
             font-weight: 800;
-            background: linear-gradient(90deg, #9B59B6, #5865F2);
+            background: linear-gradient(90deg, #dc143c, #9b59b6, #1e3ddb);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             letter-spacing: 2px;
         }
-        .subtitle {
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 40px;
-        }
+        .subtitle { color: #666; font-size: 0.85rem; margin-bottom: 36px; }
         .card {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
-            border-radius: 16px;
-            padding: 32px;
+            background: #141414;
+            border: 1px solid #222;
+            border-radius: 14px;
+            padding: 28px;
+            margin-bottom: 16px;
+            text-align: left;
         }
-        .step {
-            color: #9B59B6;
+        .card-title {
             font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 2px;
-            margin-bottom: 8px;
+            color: #9b59b6;
+            margin-bottom: 6px;
         }
-        h2 { font-size: 1.3rem; margin-bottom: 8px; }
-        .desc {
-            color: #888;
-            font-size: 0.85rem;
-            margin-bottom: 24px;
-            line-height: 1.6;
-        }
-        input {
+        h2 { font-size: 1.2rem; margin-bottom: 8px; }
+        .desc { color: #777; font-size: 0.85rem; margin-bottom: 22px; line-height: 1.6; }
+        input[type="text"] {
             width: 100%;
-            background: #111;
-            border: 1px solid #333;
+            background: #0d0d0d;
+            border: 1px solid #2a2a2a;
             border-radius: 8px;
-            padding: 14px 16px;
+            padding: 13px 16px;
             color: #fff;
             font-size: 1rem;
-            margin-bottom: 12px;
             outline: none;
             text-align: center;
             letter-spacing: 1px;
+            margin-bottom: 10px;
         }
-        input:focus { border-color: #9B59B6; }
-        input::placeholder { color: #555; }
+        input[type="text"]:focus { border-color: #9b59b6; }
+        input::placeholder { color: #444; }
         .btn {
-            background: linear-gradient(90deg, #9B59B6, #5865F2);
+            background: linear-gradient(90deg, #dc143c, #9b59b6, #1e3ddb);
             color: #fff;
             border: none;
             border-radius: 8px;
-            padding: 12px 32px;
+            padding: 12px 28px;
             font-size: 0.95rem;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             width: 100%;
-            margin-bottom: 20px;
             transition: opacity 0.2s;
         }
         .btn:hover { opacity: 0.85; }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
         .btn.green { background: linear-gradient(90deg, #27ae60, #2ecc71); }
         .token-box {
-            background: #111;
-            border: 1px solid #333;
-            border-radius: 10px;
-            padding: 18px 24px;
-            font-size: 1.4rem;
+            background: #0d0d0d;
+            border: 1px solid #2a2a2a;
+            border-radius: 8px;
+            padding: 16px;
             font-family: monospace;
-            letter-spacing: 4px;
-            color: #9B59B6;
-            margin-bottom: 12px;
+            font-size: 1.3rem;
+            letter-spacing: 3px;
+            color: #9b59b6;
+            margin-bottom: 10px;
             word-break: break-all;
         }
         .instruction {
-            background: #111;
-            border: 1px solid #2a2a2a;
+            background: #0d0d0d;
+            border: 1px solid #1e1e1e;
             border-radius: 8px;
-            padding: 14px 18px;
-            font-size: 0.85rem;
-            color: #aaa;
+            padding: 14px;
+            font-size: 0.82rem;
+            color: #888;
+            line-height: 1.8;
             text-align: left;
-            line-height: 1.7;
         }
         .instruction code {
-            background: #222;
-            color: #9B59B6;
+            background: #1a1a1a;
+            color: #9b59b6;
             padding: 2px 6px;
             border-radius: 4px;
             font-family: monospace;
         }
-        .error { color: #e74c3c; font-size: 0.85rem; margin-top: 8px; }
-        .footer { margin-top: 24px; color: #555; font-size: 0.75rem; }
-        .footer a { color: #9B59B6; text-decoration: none; }
-        #token-section { display: none; }
+        .err { color: #e74c3c; font-size: 0.82rem; margin-top: 8px; }
+        .footer { margin-top: 28px; color: #333; font-size: 0.72rem; }
+        .footer a { color: #9b59b6; text-decoration: none; }
+
+        /* Captcha section */
+        .captcha-grid { display: flex; flex-direction: column; gap: 14px; }
+        .cap-card {
+            background: #141414;
+            border: 1px solid #222;
+            border-radius: 12px;
+            padding: 20px;
+        }
+        .cap-card h3 { font-size: 0.9rem; color: #9b59b6; margin-bottom: 4px; }
+        .cap-card p { font-size: 0.78rem; color: #666; margin-bottom: 14px; }
+        .solved-tag { color: #2ecc71; font-weight: 700; font-size: 0.85rem; }
+        .start-bar {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: #0d0d0d;
+            border-top: 1px solid #222;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+        .start-bar span { color: #666; font-size: 0.85rem; }
+        .start-bar .btn { width: auto; padding: 10px 28px; }
+        .pb { padding-bottom: 80px; }
+        #captchaSection { display: none; }
+        #keySection { display: block; }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="logo">AutoAdd</div>
-        <div class="subtitle">discord.gg/GEZ5gVBykM</div>
+<div class="container" id="root">
+    <div class="logo">AutoAdd</div>
+    <div class="subtitle">discord.gg/GEZ5gVBykM</div>
 
+    <!-- Key verification section (default) -->
+    <div id="keySection">
         <div class="card">
-            <!-- Step 1: Enter Discord ID -->
-            <div id="id-section">
-                <div class="step">Step 1 of 2</div>
-                <h2>Enter Your Discord ID</h2>
-                <p class="desc">
-                    Right-click your name in Discord → <strong>Copy User ID</strong><br>
-                    (Need Developer Mode? Settings → Advanced → Developer Mode)
-                </p>
-                <input type="text" id="discord-input" placeholder="e.g. 123456789012345678" maxlength="20" />
-                <div id="id-error" class="error"></div>
-                <button class="btn" onclick="generateToken()">Generate My Token</button>
-            </div>
-
-            <!-- Step 2: Show token -->
-            <div id="token-section">
-                <div class="step">Step 2 of 2</div>
-                <h2>Your Verification Token</h2>
-                <p class="desc">Copy the token and paste it in <strong>#get-key</strong> on Discord.</p>
-                <div class="token-box" id="token-display"></div>
-                <button class="btn green" id="copy-btn" onclick="copyToken()">Copy Token</button>
-                <div class="instruction">
-                    1. Go to <strong>#get-key</strong> in our Discord<br>
-                    2. Send: <code id="verify-cmd"></code><br>
-                    3. The bot will DM you your key 🎉
-                </div>
-            </div>
+            <div class="card-title">Step 1 of 2</div>
+            <h2>Enter Your Discord ID</h2>
+            <p class="desc">
+                Right-click your name → <strong>Copy User ID</strong><br>
+                Need Developer Mode? Settings → Advanced → Developer Mode
+            </p>
+            <input type="text" id="discordInput" placeholder="e.g. 123456789012345678" maxlength="20" />
+            <div id="idError" class="err"></div>
+            <button class="btn" onclick="generateToken()">Generate My Token</button>
         </div>
 
-        <div class="footer">
-            AutoAdd &bull; <a href="https://discord.gg/GEZ5gVBykM" target="_blank">discord.gg/GEZ5gVBykM</a>
+        <div class="card" id="tokenSection" style="display:none">
+            <div class="card-title">Step 2 of 2</div>
+            <h2>Your Verification Token</h2>
+            <p class="desc">Copy and paste this in <strong>#get-key</strong> on Discord.</p>
+            <div class="token-box" id="tokenDisplay"></div>
+            <button class="btn green" id="copyBtn" onclick="copyToken()">Copy Token</button>
+            <br><br>
+            <div class="instruction">
+                1. Go to <strong>#get-key</strong> in our Discord<br>
+                2. Send: <code id="verifyCmd"></code><br>
+                3. Bot will DM your key 🎉
+            </div>
         </div>
     </div>
 
-    <script>
-        function generateToken() {
-            const input = document.getElementById('discord-input').value.trim();
-            const error = document.getElementById('id-error');
+    <!-- Captcha solver section -->
+    <div id="captchaSection" class="pb">
+        <div class="card" style="text-align:center; margin-bottom:20px;">
+            <div class="card-title">AutoAdd — Captcha Solver</div>
+            <h2 style="margin-bottom:6px;">Solve the captchas below</h2>
+            <p class="desc" style="margin-bottom:0">Each captcha unlocks a token to join servers. Solve one or more then click Start.</p>
+        </div>
+        <div id="captchaGrid" class="captcha-grid">
+            <p style="color:#555;text-align:center">Loading captchas...</p>
+        </div>
+    </div>
 
-            if (!/^\d{17,20}$/.test(input)) {
-                error.textContent = '❌ Invalid Discord ID — should be 17-19 digits.';
-                return;
-            }
-            error.textContent = '';
+    <div class="footer">
+        AutoAdd &bull; <a href="https://discord.gg/GEZ5gVBykM" target="_blank">discord.gg/GEZ5gVBykM</a>
+    </div>
+</div>
 
-            const token = computeToken(input);
+<!-- Fixed start bar (captcha mode only) -->
+<div class="start-bar" id="startBar" style="display:none">
+    <span id="solvedCount">0 solved</span>
+    <button class="btn" id="startBtn" onclick="startNow()" disabled>Start Now</button>
+</div>
 
-            document.getElementById('token-display').textContent = token;
-            document.getElementById('verify-cmd').textContent = '!verify ' + token;
-            document.getElementById('id-section').style.display = 'none';
-            document.getElementById('token-section').style.display = 'block';
+<script>
+// ── Key verification flow ─────────────────────────────────────────────────
+function generateToken() {
+    const input = document.getElementById('discordInput').value.trim();
+    const err   = document.getElementById('idError');
+    if (!/^\d{17,20}$/.test(input)) {
+        err.textContent = '❌ Invalid Discord ID — should be 17-19 digits.';
+        return;
+    }
+    err.textContent = '';
+    const token = computeToken(input);
+    document.getElementById('tokenDisplay').textContent = token;
+    document.getElementById('verifyCmd').textContent = '!verify ' + token;
+    document.getElementById('tokenSection').style.display = 'block';
+}
+
+function computeToken(discordId) {
+    const win = Math.floor(Date.now() / 1000 / 600);
+    const raw = discordId + ':' + win + ':autoadd';
+    return btoa(raw).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20).toUpperCase();
+}
+
+function copyToken() {
+    const token = document.getElementById('tokenDisplay').textContent;
+    navigator.clipboard.writeText('!verify ' + token).then(() => {
+        const btn = document.getElementById('copyBtn');
+        btn.textContent = '✓ Copied! Paste in Discord';
+        setTimeout(() => { btn.textContent = 'Copy Token'; }, 3000);
+    });
+}
+
+// Auto-fill if ?id= param present
+const params = new URLSearchParams(window.location.search);
+const idParam = params.get('id');
+if (idParam && /^\d{17,20}$/.test(idParam)) {
+    document.getElementById('discordInput').value = idParam;
+    generateToken();
+}
+
+// ── Captcha solver flow ───────────────────────────────────────────────────
+const isCaptchaMode = params.get('captcha') === '1';
+
+if (isCaptchaMode) {
+    document.getElementById('keySection').style.display   = 'none';
+    document.getElementById('captchaSection').style.display = 'block';
+    document.getElementById('startBar').style.display     = 'flex';
+    initCaptchaSolver();
+}
+
+let captchas   = [];
+let solved     = {};
+let hcapReady  = false;
+
+function initCaptchaSolver() {
+    loadCaptchas();
+    setInterval(loadCaptchas, 4000);
+}
+
+async function loadCaptchas() {
+    try {
+        const r = await fetch('http://localhost:7432/captchas');
+        if (!r.ok) return;
+        const data = await r.json();
+        // Merge — don't overwrite already-solved ones
+        data.forEach(c => {
+            if (!captchas.find(x => x.id === c.id)) captchas.push(c);
+        });
+        renderCaptchas();
+    } catch(e) {
+        // localhost not reachable yet
+    }
+}
+
+function renderCaptchas() {
+    const grid = document.getElementById('captchaGrid');
+    if (!captchas.length) {
+        grid.innerHTML = '<p style="color:#555;text-align:center">Waiting for captchas from AutoAdd...</p>';
+        return;
+    }
+
+    grid.innerHTML = captchas.map((c, i) => {
+        if (solved[c.id]) {
+            return `<div class="cap-card">
+                <h3>Invite: discord.gg/${c.invite}</h3>
+                <p>Token: ${c.token_preview}</p>
+                <span class="solved-tag">✓ Solved</span>
+            </div>`;
         }
+        const cbName = 'hcb_' + c.id.replace(/[^a-z0-9]/gi, '_');
+        return `<div class="cap-card">
+            <h3>Invite: discord.gg/${c.invite}</h3>
+            <p>Token: ${c.token_preview}</p>
+            <div class="h-captcha"
+                data-sitekey="${c.sitekey}"
+                ${c.rqdata ? `data-rqdata="${c.rqdata}"` : ''}
+                data-callback="${cbName}"
+                data-theme="dark">
+            </div>
+        </div>`;
+    }).join('');
 
-        function computeToken(discordId) {
-            const window = Math.floor(Date.now() / 1000 / 600);
-            const raw = discordId + ':' + window + ':autoadd';
-            const b64 = btoa(raw);
-            return b64.replace(/[^a-zA-Z0-9]/g, '').substring(0, 20).toUpperCase();
-        }
+    // Register callbacks dynamically
+    captchas.forEach(c => {
+        if (solved[c.id]) return;
+        const cbName = 'hcb_' + c.id.replace(/[^a-z0-9]/gi, '_');
+        window[cbName] = async (token) => {
+            solved[c.id] = token;
+            try {
+                await fetch('http://localhost:7432/solved', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: c.id, captcha_key: token })
+                });
+            } catch(e) {}
+            updateStartBtn();
+            renderCaptchas();
+        };
+    });
 
-        function copyToken() {
-            const token = document.getElementById('token-display').textContent;
-            navigator.clipboard.writeText('!verify ' + token).then(() => {
-                const btn = document.getElementById('copy-btn');
-                btn.textContent = '✓ Copied! Paste in Discord';
-                setTimeout(() => { btn.textContent = 'Copy Token'; }, 3000);
-            });
-        }
+    // Re-render hcaptcha widgets for new cards
+    if (typeof hcaptcha !== 'undefined') {
+        try { hcaptcha.render(); } catch(e) {}
+    }
 
-        // Also check URL param in case it's passed through
-        const params = new URLSearchParams(window.location.search);
-        const id = params.get('id');
-        if (id && /^\d{17,20}$/.test(id)) {
-            document.getElementById('discord-input').value = id;
-            generateToken();
-        }
-    </script>
+    updateStartBtn();
+}
+
+function updateStartBtn() {
+    const n   = Object.keys(solved).length;
+    const btn = document.getElementById('startBtn');
+    const cnt = document.getElementById('solvedCount');
+    cnt.textContent = `${n} of ${captchas.length} solved`;
+    btn.disabled    = n === 0;
+    btn.textContent = n > 0 ? `Start Now (${n} ready)` : 'Start Now';
+}
+
+async function startNow() {
+    try {
+        await fetch('http://localhost:7432/start', { method: 'POST' });
+    } catch(e) {}
+    document.getElementById('startBtn').disabled = true;
+    document.getElementById('startBtn').textContent = 'Starting...';
+    document.getElementById('solvedCount').textContent = 'Joins in progress...';
+}
+</script>
 </body>
 </html>
